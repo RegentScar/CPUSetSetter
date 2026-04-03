@@ -73,10 +73,10 @@
                                 Width="3*">
             </DataGridTextColumn>
 
-            <!--Average CPU usage column-->
-            <DataGridTextColumn Header="Avg CPU"
-                                Binding="{Binding AverageCpuPercentageStr}"
-                                SortMemberPath="AverageCpuUsage"
+            <!--CPU usage column-->
+            <DataGridTextColumn Header="CPU Usage"
+                                Binding="{Binding CpuPercentageStr}"
+                                SortMemberPath="CpuUsage"
                                 IsReadOnly="True"
                                 CanUserResize="False"
                                 Width="Auto"

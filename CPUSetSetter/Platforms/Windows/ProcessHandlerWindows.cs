@@ -11,7 +11,6 @@ namespace CPUSetSetter.Platforms.Windows
     public class ProcessHandlerWindows : IProcessHandler
     {
         private readonly static Dictionary<int, uint> _setIdPerLogicalProcessor;
-        private readonly Queue<CpuTimeTimestamp> _cpuTimeMovingAverageBuffer = new();
 
         private readonly string _executableName;
         private readonly uint _pid;
@@ -32,46 +31,46 @@ namespace CPUSetSetter.Platforms.Windows
             _queryLimitedInfoHandle = queryHandle;
         }
 
-        public double GetAverageCpuUsage()
+        private bool _isFirstCall = true;
+        private long _lastTimeStamp = 0;
+        private TimeSpan _lastTotalCpuTime = TimeSpan.Zero;
+
+        public double GetCpuUsage()
         {
             if (_queryLimitedInfoHandle.IsInvalid)
             {
                 return -1;
             }
 
-            DateTime now = DateTime.Now;
-            // Remove datapoints older than 30 seconds from the moving average buffer
-            while (_cpuTimeMovingAverageBuffer.Count > 0)
-            {
-                TimeSpan datapointAge = now - _cpuTimeMovingAverageBuffer.Peek().Timestamp;
-                if (datapointAge.TotalSeconds > 30)
-                {
-                    _cpuTimeMovingAverageBuffer.Dequeue();
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            // Get the current total CPU time of the process
+            // Get the current CPU time using GetProcessTimes
             bool success = NativeMethods.GetProcessTimes(_queryLimitedInfoHandle, out FILETIME _, out FILETIME _, out FILETIME kernelTime, out FILETIME userTime);
             if (!success)
             {
                 return -1;
             }
+
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
             TimeSpan totalCpuTime = TimeSpan.FromTicks((long)(kernelTime.ULong + userTime.ULong));
-            _cpuTimeMovingAverageBuffer.Enqueue(new() { Timestamp = now, TotalCpuTime = totalCpuTime });
 
-            // Take the CPU time from now and (up to) a minute ago, and get the average usage %
-            CpuTimeTimestamp startDatapoint = _cpuTimeMovingAverageBuffer.Peek();
-            TimeSpan deltaTime = now - startDatapoint.Timestamp;
-            TimeSpan deltaCpuTime = totalCpuTime - startDatapoint.TotalCpuTime;
+            if (_isFirstCall)
+            {
+                _isFirstCall = false;
+                _lastTimeStamp = now;
+                _lastTotalCpuTime = totalCpuTime;
+                return 0; // There is no delta on the first call
+            }
 
-            if (deltaCpuTime.Ticks == 0)
+            TimeSpan deltaTime = System.Diagnostics.Stopwatch.GetElapsedTime(_lastTimeStamp, now);
+            TimeSpan deltaCpuTime = totalCpuTime - _lastTotalCpuTime;
+
+            _lastTimeStamp = now;
+            _lastTotalCpuTime = totalCpuTime;
+
+            if (deltaCpuTime.Ticks <= 0 || deltaTime.Ticks <= 0)
                 return 0;
-            else
-                return (double)deltaCpuTime.Ticks / deltaTime.Ticks / CpuInfo.LogicalProcessorCount;
+            else if (CpuInfo.LogicalProcessorCount <= 0)
+                return 0;
+            return Math.Clamp((double)deltaCpuTime.Ticks / deltaTime.Ticks / CpuInfo.LogicalProcessorCount, 0, 1);
         }
 
         public bool ApplyMask(LogicalProcessorMask mask)
@@ -276,7 +275,7 @@ namespace CPUSetSetter.Platforms.Windows
                 while (current < bufferEnd)
                 {
                     SYSTEM_CPU_SET_INFORMATION item = Marshal.PtrToStructure<SYSTEM_CPU_SET_INFORMATION>(current);
-                    
+
                     if (item.Type != CPU_SET_INFORMATION_TYPE.CpuSetInformation)
                     {
                         throw new InvalidCastException("Invalid data type encountered; aborting");
@@ -299,13 +298,7 @@ namespace CPUSetSetter.Platforms.Windows
             _queryLimitedInfoHandle.Dispose();
             _setLimitedInfoHandle?.Dispose();
             _setInfoHandle?.Dispose();
-            _cpuTimeMovingAverageBuffer.Clear();
         }
 
-        private class CpuTimeTimestamp
-        {
-            public DateTime Timestamp { get; init; }
-            public TimeSpan TotalCpuTime { get; init; }
-        }
     }
 }

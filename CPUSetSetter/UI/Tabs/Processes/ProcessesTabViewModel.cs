@@ -12,6 +12,9 @@ namespace CPUSetSetter.UI.Tabs.Processes
 {
     public partial class ProcessesTabViewModel : ObservableObject
     {
+        private const int UPDATE_DELAY_VISIBLE_MS = 1000;
+        private const int UPDATE_DELAY_HIDDEN_MS = 2000;
+
         public static ProcessesTabViewModel? Instance { get; private set; }
 
         private readonly Dispatcher _dispatcher;
@@ -32,9 +35,9 @@ namespace CPUSetSetter.UI.Tabs.Processes
             ProcessEvents.Default.Start();
 
             runningProcessesView = (ListCollectionView)CollectionViewSource.GetDefaultView(RunningProcesses);
-            runningProcessesView.SortDescriptions.Add(new(nameof(ProcessListEntryViewModel.AverageCpuUsage), ListSortDirection.Descending));
+            runningProcessesView.SortDescriptions.Add(new(nameof(ProcessListEntryViewModel.CpuUsage), ListSortDirection.Descending));
             runningProcessesView.IsLiveSorting = true;
-            runningProcessesView.LiveSortingProperties.Add(nameof(ProcessListEntryViewModel.AverageCpuUsage));
+            runningProcessesView.LiveSortingProperties.Add(nameof(ProcessListEntryViewModel.CpuUsage));
             runningProcessesView.Filter = item => ((ProcessListEntryViewModel)item).Name.Contains(ProcessNameFilter, StringComparison.OrdinalIgnoreCase);
 
             Task.Run(ProcessCpuUsageUpdateLoop);
@@ -132,19 +135,40 @@ namespace CPUSetSetter.UI.Tabs.Processes
 
         private async Task ProcessCpuUsageUpdateLoop()
         {
+            bool wasVisible = true;
+
             while (true)
             {
                 bool windowIsVisible = false;
                 await _dispatcher.InvokeAsync(() =>
                 {
                     windowIsVisible = App.Current.MainWindow.Visibility == Visibility.Visible;
+                });
+
+                if (!windowIsVisible)
+                {
+                    if (wasVisible)
+                    {
+                        await _dispatcher.InvokeAsync(PauseListUpdates);
+                        wasVisible = false;
+                    }
+                    await Task.Delay(UPDATE_DELAY_HIDDEN_MS);
+                    continue;
+                }
+                else if (!wasVisible)
+                {
+                    await _dispatcher.InvokeAsync(ResumeListUpdates);
+                    wasVisible = true;
+                }
+
+                await _dispatcher.InvokeAsync(() =>
+                {
                     foreach (ProcessListEntryViewModel pEntry in RunningProcesses)
                     {
                         pEntry.UpdateCpuUsage();
                     }
                 });
-                int delayTime = windowIsVisible ? 1000 : 5000; // Poll the CPU usage less often when not visible
-                await Task.Delay(delayTime);
+                await Task.Delay(UPDATE_DELAY_VISIBLE_MS);
             }
         }
     }

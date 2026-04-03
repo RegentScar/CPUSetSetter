@@ -6,10 +6,10 @@ namespace CPUSetSetter.Platforms
     public interface IProcessHandler : IDisposable
     {
         /// <summary>
-        /// Get the average CPU usage of the process of the recent past (~30 seconds)
+        /// Get the CPU usage of the process
         /// </summary>
         /// <returns>Between 0 and 1 on success. -1 on fail</returns>
-        double GetAverageCpuUsage();
+        double GetCpuUsage();
         bool ApplyMask(LogicalProcessorMask mask);
     }
 }

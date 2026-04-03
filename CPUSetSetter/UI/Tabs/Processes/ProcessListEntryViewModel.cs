@@ -19,8 +19,9 @@ namespace CPUSetSetter.UI.Tabs.Processes
         public string ImagePath { get; }
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(AverageCpuPercentageStr))]
-        private double _averageCpuUsage;
+        [NotifyPropertyChangedFor(nameof(CpuPercentageStr))]
+        private double _cpuUsage;
+
 
         [ObservableProperty]
         private LogicalProcessorMask _mask;
@@ -28,7 +29,7 @@ namespace CPUSetSetter.UI.Tabs.Processes
         [ObservableProperty]
         private bool _previousApplyFailed = false;
 
-        public string AverageCpuPercentageStr => AverageCpuUsage == -1 ? "" : $"{AverageCpuUsage * 100:F1}%";
+        public string CpuPercentageStr => CpuUsage == -1 ? "" : $"{CpuUsage * 100:F1}%";
 
         public ProcessListEntryViewModel(ProcessInfo pInfo)
         {
@@ -44,12 +45,12 @@ namespace CPUSetSetter.UI.Tabs.Processes
             SetMask(mask, false);
             _mask = mask; // _mask is already set by SetMask, this just suppresses a warning
 
-            AverageCpuUsage = _processHandler.GetAverageCpuUsage();
+            CpuUsage = _processHandler.GetCpuUsage();
         }
 
         public void UpdateCpuUsage()
         {
-            AverageCpuUsage = _processHandler.GetAverageCpuUsage();
+            CpuUsage = _processHandler.GetCpuUsage();
         }
 
         public bool SetMask(LogicalProcessorMask newMask, bool updateRule)
