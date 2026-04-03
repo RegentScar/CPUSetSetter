@@ -1,5 +1,7 @@
 ﻿using Microsoft.Win32;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 
 
 namespace CPUSetSetter.Themes
@@ -9,6 +11,7 @@ namespace CPUSetSetter.Themes
         public static void ApplyTheme(Theme theme)
         {
             string themePath;
+            bool isDark = false;
             switch (theme)
             {
                 case Theme.Light:
@@ -16,6 +19,7 @@ namespace CPUSetSetter.Themes
                     break;
                 case Theme.Dark:
                     themePath = "Themes/DarkThemeColors.xaml";
+                    isDark = true;
                     break;
                 case Theme.System:
                     ApplySystemTheme();
@@ -41,6 +45,8 @@ namespace CPUSetSetter.Themes
             {
                 throw new InvalidOperationException($"Unexpected MergedDictionaries count: {mergedDicts.Count}");
             }
+
+            UpdateTitleBarStatus(isDark);
         }
 
         private static void ApplySystemTheme()
@@ -53,6 +59,73 @@ namespace CPUSetSetter.Themes
                 return;
             }
             ApplyTheme(Theme.Light);
+        }
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19;
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+        private static bool _isDarkTheme;
+        private static bool _isWindowLoadedRegistered;
+
+        private static void UpdateTitleBarStatus(bool isDarkTheme)
+        {
+            if (Application.Current == null) return;
+            Application.Current.Dispatcher.VerifyAccess();
+
+            _isDarkTheme = isDarkTheme;
+
+            if (!_isWindowLoadedRegistered)
+            {
+                EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(Window_Loaded));
+                _isWindowLoadedRegistered = true;
+            }
+
+            foreach (Window window in Application.Current.Windows)
+            {
+                var hwnd = new WindowInteropHelper(window).Handle;
+                if (hwnd == IntPtr.Zero)
+                {
+                    window.SourceInitialized += OnSourceInitialized;
+                }
+                else
+                {
+                    ApplyDarkMode(hwnd, _isDarkTheme);
+                }
+            }
+        }
+
+        private static void OnSourceInitialized(object? sender, EventArgs e)
+        {
+            if (sender is Window window)
+            {
+                window.SourceInitialized -= OnSourceInitialized;
+                var hwnd = new WindowInteropHelper(window).Handle;
+                ApplyDarkMode(hwnd, _isDarkTheme);
+            }
+        }
+
+        private static void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is Window window)
+            {
+                var hwnd = new WindowInteropHelper(window).Handle;
+                if (hwnd != IntPtr.Zero)
+                {
+                    ApplyDarkMode(hwnd, _isDarkTheme);
+                }
+            }
+        }
+
+        private static void ApplyDarkMode(IntPtr hwnd, bool isDarkTheme)
+        {
+            int useImmersiveDarkMode = isDarkTheme ? 1 : 0;
+            if (DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useImmersiveDarkMode, sizeof(int)) != 0)
+            {
+                DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, ref useImmersiveDarkMode, sizeof(int));
+            }
         }
     }
 
