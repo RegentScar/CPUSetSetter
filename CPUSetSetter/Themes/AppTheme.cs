@@ -61,6 +61,11 @@ namespace CPUSetSetter.Themes
             ApplyTheme(Theme.Light);
         }
 
+        /// <summary>
+        /// DwmSetWindowAttribute is used to set the title bar color on Windows 10 2004 and later. 
+        /// On earlier versions, it will fail and falls back to the older attribute that only works on Windows 10 1903 and later.
+        /// </summary>
+
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 

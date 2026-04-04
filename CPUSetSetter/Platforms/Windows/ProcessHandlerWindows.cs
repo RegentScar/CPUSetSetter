@@ -2,6 +2,7 @@
 using CPUSetSetter.UI.Tabs.Processes;
 using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
@@ -49,7 +50,7 @@ namespace CPUSetSetter.Platforms.Windows
                 return -1;
             }
 
-            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            long now = Stopwatch.GetTimestamp();
             TimeSpan totalCpuTime = TimeSpan.FromTicks((long)(kernelTime.ULong + userTime.ULong));
 
             if (_isFirstCall)
@@ -60,7 +61,7 @@ namespace CPUSetSetter.Platforms.Windows
                 return 0; // There is no delta on the first call
             }
 
-            TimeSpan deltaTime = System.Diagnostics.Stopwatch.GetElapsedTime(_lastTimeStamp, now);
+            TimeSpan deltaTime = Stopwatch.GetElapsedTime(_lastTimeStamp, now);
             TimeSpan deltaCpuTime = totalCpuTime - _lastTotalCpuTime;
 
             _lastTimeStamp = now;
@@ -85,6 +86,8 @@ namespace CPUSetSetter.Platforms.Windows
                         result = ApplyCpuSet(mask);
                     else if (_previousMaskType == MaskApplyType.Affinity)
                         result = ApplyAffinity(mask);
+                    else if (_previousMaskType == MaskApplyType.NoMask)
+                        result = true;
                     else
                         throw new NotImplementedException();
                     break;

@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CPUSetSetter.Config.Models;
 using CPUSetSetter.Platforms;
+using CPUSetSetter.Platforms.Windows;
 using CPUSetSetter.Util;
 using System.ComponentModel;
 using System.Windows;
@@ -40,6 +41,15 @@ namespace CPUSetSetter.UI.Tabs.Processes
             runningProcessesView.LiveSortingProperties.Add(nameof(ProcessListEntryViewModel.CpuUsage));
             runningProcessesView.Filter = item => ((ProcessListEntryViewModel)item).Name.Contains(ProcessNameFilter, StringComparison.OrdinalIgnoreCase);
 
+            GameMode.IsEnabledChanged += (s, e) =>
+            {
+                foreach (var process in RunningProcesses)
+                {
+                    process.RefreshGameModeApply();
+                    process.UpdateVisualMask();
+                }
+            };
+
             Task.Run(ProcessCpuUsageUpdateLoop);
         }
 
@@ -48,6 +58,11 @@ namespace CPUSetSetter.UI.Tabs.Processes
         /// </summary>
         public void OnMaskHotkeyPressed(LogicalProcessorMask mask)
         {
+            if (GameMode.IsEnabled)
+            {
+                return;
+            }
+
             ProcessListEntryViewModel? foregroundProcess = GetCurrentForegroundProcess();
             if (foregroundProcess is not null)
             {
@@ -139,6 +154,9 @@ namespace CPUSetSetter.UI.Tabs.Processes
 
             while (true)
             {
+                // Periodically sync Windows Game Mode registry changes
+                GameMode.CheckState();
+
                 bool windowIsVisible = false;
                 await _dispatcher.InvokeAsync(() =>
                 {

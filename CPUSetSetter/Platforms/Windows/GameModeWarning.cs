@@ -1,11 +1,8 @@
 ﻿using CPUSetSetter.Config.Models;
 using CPUSetSetter.UI.Tabs.Processes;
-using Microsoft.Win32;
-using System.Diagnostics;
 using System.Windows;
 
-
-namespace CPUSetSetter.Platforms
+namespace CPUSetSetter.Platforms.Windows
 {
     /// <summary>
     /// Windows Game Mode is abysmal to gaming performance when combined with CPU Set Setter.
@@ -13,23 +10,35 @@ namespace CPUSetSetter.Platforms
     /// </summary>
     public static class WindowsGameModeWarning
     {
+        private static bool _eventHooked = false;
+        private const string LogWarningMessage = "WARNING: Windows Game Mode is enabled. As long as Game Mode is enabled, no masks are applied.";
+
         public static void ShowIfEnabled()
         {
-            if (!GameModeEnabled())
-                return;
+            if (!_eventHooked)
+            {
+                _eventHooked = true;
+                GameMode.IsEnabledChanged += (s, e) =>
+                {
+                    if (GameMode.IsEnabled)
+                    {
+                        WindowLogger.Write(LogWarningMessage);
+                    }
+                };
+            }
 
-            WindowLogger.Write("WARNING: Windows Game Mode is enabled. This might have a severe negative impact on gaming performance/stability " +
-                "when also using CPU Set Setter on games.");
+            if (!GameMode.IsEnabled)
+                return;
 
             if (AppConfig.Instance.ShowGameModePopup)
             {
-                App.Current.Dispatcher.InvokeAsync(() =>
+                Application.Current?.Dispatcher?.InvokeAsync(() =>
                 {
                     MessageBoxResult result = MessageBox.Show(
                         "Windows Game Mode is currently enabled.\n" +
                         "On AMD CPUs, Game Mode is known to conflict with CPU Set Setter, leading to lower FPS and game crashes.\n" +
                         "I am not sure if Intel CPUs are affected too. So if you have one, please share your findings with me on GitHub!\n\n" +
-                        "Would you like to open the Game Mode Settings page?\n\n" +
+                        "Would you like CPU Set Setter to disable Game Mode for you?\n\n" +
                         "(This popup can be disabled in the Settings tab)",
                         "CPU Set Setter: Windows Game Mode warning",
                         MessageBoxButton.YesNo,
@@ -37,28 +46,18 @@ namespace CPUSetSetter.Platforms
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        OpenGameModeSettings();
+                        GameMode.IsEnabled = false;
+                    }
+                    else
+                    {
+                        WindowLogger.Write(LogWarningMessage);
                     }
                 });
             }
-        }
-
-        private static bool GameModeEnabled()
-        {
-            using RegistryKey? gameBarKey = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\GameBar");
-            if (gameBarKey is null)
-                return false;
-
-            object? gameModeValue = gameBarKey.GetValue("AutoGameModeEnabled");
-            if (gameModeValue is int value)
-                return value != 0;
-
-            return false;
-        }
-
-        private static void OpenGameModeSettings()
-        {
-            Process.Start(new ProcessStartInfo { FileName = "ms-settings:gaming-gamemode", UseShellExecute = true });
+            else
+            {
+                WindowLogger.Write(LogWarningMessage);
+            }
         }
     }
 }

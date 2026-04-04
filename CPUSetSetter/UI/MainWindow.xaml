@@ -14,41 +14,51 @@
         Width="1020"
         MinWidth="900">
 
-    <TabControl>
-        <!--Processes Tab-->
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Text="Processes"/>
-            </TabItem.Header>
+    <Grid>
+        <CheckBox x:Name="GameModeCheckBox" 
+                  Content="Windows Game Mode" 
+                  ToolTip="When Windows Game Mode is enabled, all Masks are cleared on any running process to allow for full Core Parking on supported CPUs. Disabling restores all active Masks."
+                  HorizontalAlignment="Right" 
+                  VerticalAlignment="Top" 
+                  Margin="0,5,5,0"
+                  Panel.ZIndex="1"/>
+                  
+        <TabControl>
+            <!--Processes Tab-->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Processes"/>
+                </TabItem.Header>
 
-            <proc:ProcessesTab/>
-        </TabItem>
+                <proc:ProcessesTab/>
+            </TabItem>
 
-        <!--Masks Tab-->
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Text="Masks"/>
-            </TabItem.Header>
+            <!--Masks Tab-->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Masks"/>
+                </TabItem.Header>
 
-            <masks:MasksTab/>
-        </TabItem>
+                <masks:MasksTab/>
+            </TabItem>
 
-        <!--Rules-->
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Text="Rules"/>
-            </TabItem.Header>
+            <!--Rules-->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Rules"/>
+                </TabItem.Header>
 
-            <rules:RulesTab/>
-        </TabItem>
+                <rules:RulesTab/>
+            </TabItem>
 
-        <!--Settings-->
-        <TabItem>
-            <TabItem.Header>
-                <TextBlock Text="Settings"/>
-            </TabItem.Header>
+            <!--Settings-->
+            <TabItem>
+                <TabItem.Header>
+                    <TextBlock Text="Settings"/>
+                </TabItem.Header>
 
-            <settings:SettingsTab/>
-        </TabItem>
-    </TabControl>
+                <settings:SettingsTab/>
+            </TabItem>
+            </TabControl>
+    </Grid>
 </Window>

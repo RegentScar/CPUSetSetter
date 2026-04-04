@@ -2,6 +2,7 @@
 using CPUSetSetter.Config.Models;
 using CPUSetSetter.Util;
 using CPUSetSetter.Platforms;
+using CPUSetSetter.Platforms.Windows;
 
 
 namespace CPUSetSetter.UI.Tabs.Processes
@@ -24,7 +25,22 @@ namespace CPUSetSetter.UI.Tabs.Processes
 
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(DisplayedMask))]
         private LogicalProcessorMask _mask;
+
+        public LogicalProcessorMask DisplayedMask
+        {
+            get => GameMode.IsEnabled ? LogicalProcessorMask.NoMask : (Mask ?? LogicalProcessorMask.NoMask);
+            set
+            {
+                if (!GameMode.IsEnabled && value != null)
+                {
+                    Mask = value;
+                }
+            }
+        }
+
+        public bool IsMaskAllowed => !GameMode.IsEnabled;
 
         [ObservableProperty]
         private bool _previousApplyFailed = false;
@@ -73,9 +89,20 @@ namespace CPUSetSetter.UI.Tabs.Processes
                 }
                 ruleSuccess = programRule.SetMask(newMask, true);
             }
-            bool success = _processHandler.ApplyMask(newMask);
+            bool success = ApplyMaskConsideringGameMode(newMask);
             PreviousApplyFailed = !success;
             return success && ruleSuccess;
+        }
+
+        public void RefreshGameModeApply()
+        {
+            ApplyMaskConsideringGameMode(Mask);
+        }
+
+        public void UpdateVisualMask()
+        {
+            OnPropertyChanged(nameof(DisplayedMask));
+            OnPropertyChanged(nameof(IsMaskAllowed));
         }
 
         /// <summary>
@@ -92,7 +119,18 @@ namespace CPUSetSetter.UI.Tabs.Processes
         private void OnMaskEdited(object? sender, EventArgs e)
         {
             // One of the logical processors in the mask or the type has changed, apply it
-            PreviousApplyFailed = !_processHandler.ApplyMask(Mask);
+            bool success = ApplyMaskConsideringGameMode(Mask);
+            PreviousApplyFailed = !success;
+        }
+
+        private bool ApplyMaskConsideringGameMode(LogicalProcessorMask mask)
+        {
+            if (GameMode.IsEnabled)
+            {
+                return _processHandler.ApplyMask(LogicalProcessorMask.NoMask);
+            }
+
+            return _processHandler.ApplyMask(mask);
         }
 
         /// <summary>
