@@ -8,7 +8,7 @@ namespace CPUSetSetter.UI.Tabs.Processes
         [ObservableProperty]
         private string _text = "";
 
-        private readonly Queue<string> _logLines = new();
+        private readonly List<(string Message, int Count)> _logLines = new();
         private readonly Lock _lock = new();
         private bool _isUpdating = false;
 
@@ -23,7 +23,15 @@ namespace CPUSetSetter.UI.Tabs.Processes
         {
             using (_lock.EnterScope())
             {
-                _logLines.Enqueue(message + "\n");
+                if (_logLines.Count > 0 && _logLines[^1].Message == message)
+                {
+                    var last = _logLines[^1];
+                    _logLines[^1] = (last.Message, last.Count + 1);
+                }
+                else
+                {
+                    _logLines.Add((message, 1));
+                }
 
                 // Begin updating the logger text in the UI
                 // A small delay is used before updating, so multiple logs can be rendered in one go
@@ -43,9 +51,9 @@ namespace CPUSetSetter.UI.Tabs.Processes
             {
                 while (_logLines.Count > 50)
                 {
-                    _logLines.Dequeue();
+                    _logLines.RemoveAt(0);
                 }
-                Text = string.Join("", _logLines);
+                Text = string.Join("", _logLines.Select(l => l.Count > 1 ? $"{l.Message} ({l.Count})\n" : $"{l.Message}\n"));
                 _isUpdating = false;
             }
         }
