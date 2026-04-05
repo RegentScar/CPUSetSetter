@@ -78,6 +78,14 @@ namespace CPUSetSetter
             trayIcon.OpenClicked += (_, _) => ShowMainWindow();
             trayIcon.CloseClicked += (_, _) => ExitAppGracefully();
 
+            // Sync the Game Mode state between the tray icon and the GameMode class
+            trayIcon.IsGameModeEnabled = GameMode.IsEnabled;
+            trayIcon.GameModeToggled += (_, isEnabled) => GameMode.IsEnabled = isEnabled;
+            GameMode.IsEnabledChanged += (_, _) =>
+            {
+                Dispatcher.InvokeAsync(() => trayIcon.IsGameModeEnabled = GameMode.IsEnabled);
+            };
+
             if (AppConfig.Instance.IsFirstRun)
             {
                 // Promote the tray icon directly onto the Taskbar instead of in the "up-arrow" menu
