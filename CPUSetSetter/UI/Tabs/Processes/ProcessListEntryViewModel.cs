@@ -19,6 +19,8 @@ namespace CPUSetSetter.UI.Tabs.Processes
         public string Name { get; }
         public string ImagePath { get; }
 
+        private static bool GameModeForcesNoMask => GameMode.IsEnabled && !AppConfig.Instance.DisableGameModeMaskClearing;
+
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CpuPercentageStr))]
         private double _cpuUsage;
@@ -30,17 +32,17 @@ namespace CPUSetSetter.UI.Tabs.Processes
 
         public LogicalProcessorMask DisplayedMask
         {
-            get => GameMode.IsEnabled ? LogicalProcessorMask.NoMask : (Mask ?? LogicalProcessorMask.NoMask);
+            get => GameModeForcesNoMask ? LogicalProcessorMask.NoMask : (Mask ?? LogicalProcessorMask.NoMask);
             set
             {
-                if (!GameMode.IsEnabled && value != null)
+                if (!GameModeForcesNoMask && value != null)
                 {
                     Mask = value;
                 }
             }
         }
 
-        public bool IsMaskAllowed => !GameMode.IsEnabled;
+        public bool IsMaskAllowed => !GameModeForcesNoMask;
 
         [ObservableProperty]
         private bool _previousApplyFailed = false;
@@ -125,7 +127,7 @@ namespace CPUSetSetter.UI.Tabs.Processes
 
         private bool ApplyMaskConsideringGameMode(LogicalProcessorMask mask)
         {
-            if (GameMode.IsEnabled)
+            if (GameModeForcesNoMask)
             {
                 return _processHandler.ApplyMask(LogicalProcessorMask.NoMask);
             }

@@ -11,7 +11,7 @@ namespace CPUSetSetter.Platforms.Windows
     public static class WindowsGameModeWarning
     {
         private static bool _eventHooked = false;
-        private const string LogWarningMessage = "WARNING: Windows Game Mode is enabled. As long as Game Mode is enabled, no masks are applied.";
+        private const string LogWarningMessage = "WARNING: While Windows Game Mode is enabled, no masks are applied. (This behavior can be disabled in the Settings tab)";
 
         public static void ShowIfEnabled()
         {
@@ -20,7 +20,7 @@ namespace CPUSetSetter.Platforms.Windows
                 _eventHooked = true;
                 GameMode.IsEnabledChanged += (s, e) =>
                 {
-                    if (GameMode.IsEnabled)
+                    if (GameMode.IsEnabled && !AppConfig.Instance.DisableGameModeMaskClearing)
                     {
                         WindowLogger.Write(LogWarningMessage);
                     }
@@ -50,13 +50,15 @@ namespace CPUSetSetter.Platforms.Windows
                     }
                     else
                     {
-                        WindowLogger.Write(LogWarningMessage);
+                        if (!AppConfig.Instance.DisableGameModeMaskClearing)
+                            WindowLogger.Write(LogWarningMessage);
                     }
                 });
             }
             else
             {
-                WindowLogger.Write(LogWarningMessage);
+                if (!AppConfig.Instance.DisableGameModeMaskClearing)
+                    WindowLogger.Write(LogWarningMessage);
             }
         }
     }

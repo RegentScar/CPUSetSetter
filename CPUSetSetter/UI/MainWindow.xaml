@@ -15,6 +15,7 @@
         MinWidth="900">
 
     <Grid>
+        <!--Windows Game Mode Checkbox-->
         <CheckBox x:Name="GameModeCheckBox" 
                   Content="Windows Game Mode" 
                   ToolTip="When Windows Game Mode is enabled, all Masks are cleared on any running process to allow for full Core Parking on supported CPUs. Disabling restores all active Masks."

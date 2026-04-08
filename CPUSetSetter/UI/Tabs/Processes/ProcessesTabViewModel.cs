@@ -41,11 +41,29 @@ namespace CPUSetSetter.UI.Tabs.Processes
             runningProcessesView.LiveSortingProperties.Add(nameof(ProcessListEntryViewModel.CpuUsage));
             runningProcessesView.Filter = item => ((ProcessListEntryViewModel)item).Name.Contains(ProcessNameFilter, StringComparison.OrdinalIgnoreCase);
 
+            AppConfig.Instance.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(AppConfig.DisableGameModeMaskClearing) && GameMode.IsEnabled)
+                {
+                    foreach (var process in RunningProcesses)
+                    {
+                        process.RefreshGameModeApply();
+                        // UpdateVisualMask is called to ensure UI bindings (like IsMaskAllowed and DisplayedMask) immediately update when the user changes this setting.
+                        process.UpdateVisualMask();
+                    }
+                }
+            };
+
             GameMode.IsEnabledChanged += (s, e) =>
             {
+                bool shouldRefresh = !AppConfig.Instance.DisableGameModeMaskClearing;
                 foreach (var process in RunningProcesses)
                 {
-                    process.RefreshGameModeApply();
+                    if (shouldRefresh)
+                        process.RefreshGameModeApply();
+
+                    // UpdateVisualMask must always be called when GameMode toggles to ensure the UI correctly updates the combobox logic,
+                    // regardless of whether we actively re-apply the masks to the underlying process.
                     process.UpdateVisualMask();
                 }
             };
@@ -58,7 +76,7 @@ namespace CPUSetSetter.UI.Tabs.Processes
         /// </summary>
         public void OnMaskHotkeyPressed(LogicalProcessorMask mask)
         {
-            if (GameMode.IsEnabled)
+            if (GameMode.IsEnabled && !AppConfig.Instance.DisableGameModeMaskClearing)
             {
                 return;
             }

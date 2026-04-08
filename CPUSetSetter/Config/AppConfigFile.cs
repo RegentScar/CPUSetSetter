@@ -178,6 +178,7 @@ namespace CPUSetSetter.Config
                 configJson.ShowGameModePopup,
                 configJson.ShowUpdatePopup,
                 configJson.ClearMasksOnClose,
+                configJson.DisableGameModeMaskClearing,
                 Enum.Parse<Theme>(configJson.UiTheme),
                 generateDefaultMasks,
                 isFirstRun,
@@ -196,6 +197,7 @@ namespace CPUSetSetter.Config
             public bool ShowGameModePopup { get; init; }
             public bool ShowUpdatePopup { get; init; }
             public bool ClearMasksOnClose { get; init; }
+            public bool DisableGameModeMaskClearing { get; init; }
             public string UiTheme { get; init; }
             public int ConfigVersion { get; init; } // Can be used in the future to migrate config files
 
@@ -215,6 +217,7 @@ namespace CPUSetSetter.Config
                 ShowGameModePopup = true;
                 ShowUpdatePopup = true;
                 ClearMasksOnClose = false;
+                DisableGameModeMaskClearing = false;
                 UiTheme = Theme.System.ToString();
                 ConfigVersion = 0;
             }
@@ -255,6 +258,7 @@ namespace CPUSetSetter.Config
                 ShowGameModePopup = config.ShowGameModePopup;
                 ShowUpdatePopup = config.ShowUpdatePopup;
                 ClearMasksOnClose = config.ClearMasksOnClose;
+                DisableGameModeMaskClearing = config.DisableGameModeMaskClearing;
                 UiTheme = config.UiTheme.ToString();
                 ConfigVersion = AppConfigFile.ConfigVersion;
             }
